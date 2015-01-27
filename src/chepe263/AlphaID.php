@@ -11,8 +11,9 @@ class AlphaID
  * @author  Deadfish
  * @copyright 2008 Kevin van Zonneveld (http://kevin.vanzonneveld.net)
  * @license   http://www.opensource.org/licenses/bsd-license.php New BSD Licence
- * @version   SVN: Release: $Id: alphaID.inc.php 344 2009-06-10 17:43:59Z kevin $
+ * @version   Jan 03 2014 f36fc7b0a3c8b989e90a960a210675f6ed8fc492
  * @link    http://kevin.vanzonneveld.net/
+ * @link    https://github.com/kvz/deprecated/blob/kvzlib/php/functions/alphaID.inc.php
  *
  * @param mixed   $in    String or long input to translate
  * @param boolean $to_num  Reverses translation when true
@@ -23,66 +24,55 @@ class AlphaID
  */
 	public static function make($in, $to_num = false, $pad_up = false, $passKey = null)
 	{
-	  $index = "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-	  if ($passKey !== null) {
-	 
-		for ($n = 0; $n<strlen($index); $n++) {
-		  $i[] = substr( $index,$n ,1);
+		$out   =   '';
+		$index = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		$base  = strlen($index);
+		if ($pass_key !== null) {
+			// Although this function's purpose is to just make the
+			// ID short - and not so much secure,
+			// with this patch by Simon Franz (http://blog.snaky.org/)
+			// you can optionally supply a password to make it harder
+			// to calculate the corresponding numeric ID
+			for ($n = 0; $n < strlen($index); $n++) {
+				$i[] = substr($index, $n, 1);
+			}
+			$pass_hash = hash('sha256',$pass_key);
+			$pass_hash = (strlen($pass_hash) < strlen($index) ? hash('sha512', $pass_key) : $pass_hash);
+			for ($n = 0; $n < strlen($index); $n++) {
+				$p[] =  substr($pass_hash, $n, 1);
+			}
+			array_multisort($p, SORT_DESC, $i);
+			$index = implode($i);
 		}
-	 
-		$passhash = hash('sha256',$passKey);
-		$passhash = (strlen($passhash) < strlen($index))
-		  ? hash('sha512',$passKey)
-		  : $passhash;
-	 
-		for ($n=0; $n < strlen($index); $n++) {
-		  $p[] =  substr($passhash, $n ,1);
+		if ($to_num) {
+			// Digital number  <<--  alphabet letter code
+			$len = strlen($in) - 1;
+			for ($t = $len; $t >= 0; $t--) {
+				$bcp = bcpow($base, $len - $t);
+				$out = $out + strpos($index, substr($in, $t, 1)) * $bcp;
+			}
+			if (is_numeric($pad_up)) {
+				$pad_up--;
+				if ($pad_up > 0) {
+					$out -= pow($base, $pad_up);
+				}
+			}
+		} else {
+			// Digital number  -->>  alphabet letter code
+			if (is_numeric($pad_up)) {
+				$pad_up--;
+				if ($pad_up > 0) {
+					$in += pow($base, $pad_up);
+				}
+			}
+			for ($t = ($in != 0 ? floor(log($in, $base)) : 0); $t >= 0; $t--) {
+				$bcp = bcpow($base, $t);
+				$a   = floor($in / $bcp) % $base;
+				$out = $out . substr($index, $a, 1);
+				$in  = $in - ($a * $bcp);
+			}
 		}
-	 
-		array_multisort($p,  SORT_DESC, $i);
-		$index = implode($i);
-	  }
-	 
-	  $base  = strlen($index);
-	 
-	  if ($to_num) {
-		// Digital number  <<--  alphabet letter code
-		$in  = strrev($in);
-		$out = 0;
-		$len = strlen($in) - 1;
-		for ($t = 0; $t <= $len; $t++) {
-		  $bcpow = bcpow($base, $len - $t);
-		  $out   = $out + strpos($index, substr($in, $t, 1)) * $bcpow;
-		}
-	 
-		if (is_numeric($pad_up)) {
-		  $pad_up--;
-		  if ($pad_up > 0) {
-			$out -= pow($base, $pad_up);
-		  }
-		}
-		$out = sprintf('%F', $out);
-		$out = substr($out, 0, strpos($out, '.'));
-	  } else {
-		// Digital number  -->>  alphabet letter code
-		if (is_numeric($pad_up)) {
-		  $pad_up--;
-		  if ($pad_up > 0) {
-			$in += pow($base, $pad_up);
-		  }
-		}
-	 
-		$out = "";
-		for ($t = floor(log($in, $base)); $t >= 0; $t--) {
-		  $bcp = bcpow($base, $t);
-		  $a   = floor($in / $bcp) % $base;
-		  $out = $out . substr($index, $a, 1);
-		  $in  = $in - ($a * $bcp);
-		}
-		$out = strrev($out); // reverse
-	  }
-	 
-	  return $out;
+		return $out;
 	}    
         
 }
