@@ -18,11 +18,11 @@ class AlphaID
  * @param mixed   $in    String or long input to translate
  * @param boolean $to_num  Reverses translation when true
  * @param mixed   $pad_up  Number or boolean padds the result up to a specified length
- * @param string  $passKey Supplying a password makes it harder to calculate the original ID
+ * @param string  $pass_key Supplying a password makes it harder to calculate the original ID
  *
  * @return mixed string or long
  */
-	public static function make($in, $to_num = false, $pad_up = false, $passKey = null)
+	public static function make($in, $to_num = false, $pad_up = false, $pass_key = null)
 	{
 		$out   =   '';
 		$index = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
